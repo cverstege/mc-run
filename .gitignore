@@ -1,5 +1,5 @@
 # user generated logs and temporary outputs
-data/
+data*/
 rivet-plots/
 *.yoda
 
