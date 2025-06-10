@@ -372,6 +372,15 @@ def exp_model(x, a=10.0, b=-2.0, c=1.0):
     return np.asarray(ret, dtype=np.float64)
 
 
+def exp_model_e(x, a=10.0, b=-2.0, c=1.0):
+    x = np.asarray(x, dtype=np.float128)
+    a = np.asarray(a, dtype=np.float128)
+    b = np.asarray(b, dtype=np.float128)
+    c = np.asarray(c, dtype=np.float128)
+    ret = a * np.exp(np.log(x) * b) + c
+    return np.asarray(ret, dtype=np.float64)
+
+
 def exp_model_log(x, a=10.0, b=-2.0, c=1.0):
     x = np.asarray(x, dtype=np.float128)
     a = np.asarray(a, dtype=np.float128)
@@ -388,16 +397,15 @@ def kafe2_fit(xVals, yVals, xErrs, yErrs, xrange=None):
     data.add_error("y", yErrs, correlation=0, relative=False)
 
     fit = kafe2.XYFit(
-        data,
-        model_function=exp_model_log,
-        minimizer_kwargs={'tolerance': 1e-4}
+        data, model_function=exp_model_log, minimizer_kwargs={"tolerance": 1e-4}
     )
     fit_res = fit.do_fit()
 
     # interpolate the fit to 100 points for better plots
-    x_line = np.logspace(np.log10(xVals.min()), np.log10(xVals.max()), 100)
-    if xrange:
-        x_line = np.logspace(np.log10(xrange[0]), np.log10(xrange[1]), 100)
+    # x_line = np.logspace(np.log10(xVals.min()), np.log10(xVals.max()), 100)
+    # if xrange:
+    #     x_line = np.logspace(np.log10(xrange[0]), np.log10(xrange[1]), 100)
+    x_line = xVals
 
     y_line = fit.eval_model_function(x_line)
     y_line_errs = fit.error_band(x_line)
