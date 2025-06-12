@@ -3,11 +3,9 @@
 #include "Rivet/Projections/FinalState.hh"
 #include "Rivet/Projections/FastJets.hh"
 #include "Rivet/Projections/DressedLeptons.hh"
-#include "Rivet/Projections/MissingMomentum.hh"
-#include "Rivet/Projections/DirectFinalState.hh"
+#include "Rivet/Projections/VetoedFinalState.hh"
 
 namespace Rivet {
-
   // Main analysis class for CMS_SMP_24_010
   class CMS_SMP_24_010 : public Analysis {
   public:
@@ -36,16 +34,24 @@ namespace Rivet {
         << "\tZ-mass window +/-: " << _zmassdiff/GeV << " GeV\n"
         << "\tMin Z pT: " << _minptZ/GeV << " GeV\n");
 
-      // Projections: final state, jets, prompt photons/muons, dressed muons
-      declare(FinalState(Cuts::abseta < 4.9), "FS");
+      // Projections: final state, jets, photons/muons, dressed muons
+      const FinalState fs(Cuts::abseta < 4.9);
       // CMS GenJets include muons, cleaning is done later with deltaR with respect to Z-muons
-      declare(FastJets(FinalState(Cuts::abseta < 4.9), FastJets::ANTIKT, 0.4, JetAlg::Muons::ALL, JetAlg::Invisibles::NONE), "jetsAK4");
-      declare(FastJets(FinalState(Cuts::abseta < 4.9), FastJets::ANTIKT, 0.8, JetAlg::Muons::ALL, JetAlg::Invisibles::NONE), "jetsAK8");
-      declare(PromptFinalState(Cuts::abspid == PID::PHOTON), "photons");
-      declare(PromptFinalState(Cuts::abspid == PID::MUON), "bare_muons");
-      // Dress bare muons with photons and apply selections
+      declare(FastJets(fs, FastJets::ANTIKT, 0.4, JetAlg::Muons::ALL, JetAlg::Invisibles::NONE), "jetsAK4");
+      declare(FastJets(fs, FastJets::ANTIKT, 0.8, JetAlg::Muons::ALL, JetAlg::Invisibles::NONE), "jetsAK8");
+      // Dress Muons with photons
+      FinalState photons(Cuts::abspid == PID::PHOTON && Cuts::abseta < 4.9);
+      FinalState bare_muons(Cuts::abspid == PID::MUON && Cuts::abseta < 4.9);
       Cut muon_cuts = Cuts::abseta < _maxmuoneta && Cuts::pT > _minmuonptcut;
-      declare(DressedLeptons(getProjection<PromptFinalState>("photons"), getProjection<PromptFinalState>("bare_muons"), _muondressingDeltaR, muon_cuts), "muons");
+      const DressedLeptons dressed_muons(
+        photons,
+        bare_muons,
+        _muondressingDeltaR, muon_cuts
+      );
+      declare(dressed_muons, "muons");
+      // FinalState for all particles in the event except muons for isolation criteria
+      const FinalState no_muons(Cuts::abspid != PID::MUON && Cuts::abseta < 4.9);
+      declare(no_muons, "fs_no_muons");
 
       // Book histograms for jet multiplicity and Z pT in y* and yboost bins
       vector<double> binedges_ZPt;
@@ -78,16 +84,13 @@ namespace Rivet {
     // === Per-event analysis: selection, reconstruction, and histogramming ===
     void analyze(const Event& event) {
       // --- Isolated dressed muon selection ---
-      const auto& muons = apply<DressedLeptons>(event, "muons").dressedLeptons();
-      const auto& fs_particles = apply<FinalState>(event, "FS").particles();
-      vector<DressedLepton> isolated_muons;
-      for (const auto& mu : muons) {
-        double sumpt = 0.0;
-        for (const auto& p : fs_particles) {
-          if (p.genParticle() == mu.constituentLepton().genParticle()) continue;
-          if (deltaR(mu, p) < 0.4) sumpt += p.pT();
-        }
-        if (sumpt / mu.pT() < _muonisolationCut) isolated_muons.push_back(mu);
+      const Particles& muons = apply<DressedLeptons>(event, "muons").particles();
+      const Particles& iso_particles = apply<FinalState>(event, "fs_no_muons").particles();
+      Particles isolated_muons;
+      for (const Particle& mu : muons) {
+        double isolation = sum(filter_select(iso_particles, deltaRLess(mu, 0.4)), Kin::pT, 0.) / mu.pT();
+        if (isolation > _muonisolationCut) continue;
+        isolated_muons += mu;
       }
       MSG_DEBUG(muons.size() << " dressed muons; " << isolated_muons.size() << " isolated muons");
       if (isolated_muons.size() < 2) vetoEvent;
@@ -95,8 +98,8 @@ namespace Rivet {
       // --- Z boson candidate selection ---
       bool bosoncandidateexists = false;
       double best_massdiff = _zmassdiff;
-      const DressedLepton* muon = nullptr;
-      const DressedLepton* antimuon = nullptr;
+      const Particle* muon = nullptr;
+      const Particle* antimuon = nullptr;
       for (size_t i = 0; i < isolated_muons.size(); ++i) {
         for (size_t j = i + 1; j < isolated_muons.size(); ++j) {
           if (isolated_muons[i].pid() != -isolated_muons[j].pid()) continue;
@@ -131,8 +134,8 @@ namespace Rivet {
       set<string> _jetcollectionstoerase;
       bool jet1pass = false;
       // Prepare a vector of DressedLepton for cleaning
-      vector<DressedLepton> z_leptons = {*muon, *antimuon};
-      for (auto& jets: _jetcollections) {
+      Particles z_leptons = {*muon, *antimuon};
+      for (pair<string, Jets> jets : _jetcollections) {
         idiscardIfAnyDeltaRLess(jets.second, z_leptons, _muonCleaningDeltaR);
         MSG_DEBUG(jets.second.size() << " cleaned " << jets.first << " jets");
         // Require at least one hard jet
@@ -154,15 +157,18 @@ namespace Rivet {
       }
 
       // --- Histogram filling ---
-      for (const auto& jets: _jetcollections) {
+      for (const pair<string,Jets> jets: _jetcollections) {
         MSG_DEBUG("Filling Histograms for " << jets.first);
         _h["NJets"+jets.first]->fill(jets.second.size());
         double rap_Jet1 = jets.second.at(0).rap();
         double rap_star = 0.5 * abs(rap_Z - rap_Jet1);
         double rap_boost = 0.5 * abs(rap_Z + rap_Jet1);
         auto bin = findYstarYboostBin(rap_star, rap_boost);
+        MSG_DEBUG("rapidity star: " << rap_star << ", rapidity boost: " << rap_boost);
+        MSG_DEBUG("Selected y*-yb bin: Ys" << bin.first << " Yb" << bin.second);
         if (bin.first != -1.0 && bin.second != -1.0) {
           string _hist_ZPt_ident = "ZPt"+jets.first+"Ys"+to_string(bin.first)+"Yb"+to_string(bin.second);
+          MSG_DEBUG("Filling histogram: " << _hist_ZPt_ident);
           _h[_hist_ZPt_ident]->fill(pT_Z);
         }
       }
@@ -187,14 +193,15 @@ namespace Rivet {
     pair<double, double> findYstarYboostBin(double rap_star, double rap_boost) const {
       // Bin edges and naming use lower bound
       for (double _ystar : binedges_Ystar) {
-        if (rap_star < _ystar+0.5) continue;
+        MSG_DEBUG("Checking y* bin: " << _ystar);
+        if (rap_star > _ystar+0.5) continue;
         for (double _yboost : binedges_Yboost) {
-          if (_ystar + _yboost > 2.) continue;
-          if (rap_boost < _yboost+0.5) {
-            double _ystar_label = _ystar;
-            double _yboost_label = _yboost;
-            return make_pair(_ystar_label, _yboost_label);
-          }
+          MSG_DEBUG("Checking yboost bin: " << _yboost);
+          if (rap_boost > _yboost+0.5) continue;
+          if (_ystar + _yboost > 2.) break; // No valid bin if y* + y > 2
+          double _ystar_label = _ystar;
+          double _yboost_label = _yboost;
+          return make_pair(_ystar_label, _yboost_label);
         }
       }
       return make_pair(-1.0, -1.0); // Not found
