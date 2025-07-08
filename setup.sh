@@ -79,9 +79,9 @@ action() {
     # Enable WLCG cache only when running locally.
     # Just wasted disk space on worker nodes.
     if [[ "$MCRUN_REMOTE" == "1" ]]; then
-        export ENABLE_WLCG_CACHE=0
+        export ENABLE_WLCG_CACHE=False
     else
-        export ENABLE_WLCG_CACHE=1
+        export ENABLE_WLCG_CACHE=True
     fi
 
     _addpy "$this_dir/kafe2"
