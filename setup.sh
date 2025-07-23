@@ -30,7 +30,7 @@ source_lcg_stack() {
     elif [[ "$distro" == "RedHatEnterprise" || "$distro" == "Alma" || "$distro" == "Rocky" ]]; then
         if [[ ${os_version:0:1} == "9" ]]; then
             prefix=x86_64-el9
-            grid_ui="/cvmfs/grid.cern.ch/alma9-ui-test/etc/profile.d/setup-alma9-test.sh"
+            grid_ui="/cvmfs/grid.cern.ch/alma9-ui-current/etc/profile.d/setup-alma9-test.sh"
             platform=${prefix}-gcc13-opt
         fi
     elif [[ "$distro" == "Ubuntu" ]]; then
