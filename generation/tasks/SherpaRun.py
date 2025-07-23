@@ -92,7 +92,7 @@ class SherpaRun(GenRivetTask, HTCondorWorkflow, law.LocalWorkflow):
 
         # set environment variables
         sherpa_env = set_environment_variables(
-            os.path.expandvars("$ANALYSIS_PATH/setup/setup_sherpa.sh")
+            os.path.expandvars("$ANALYSIS_PATH/setup/setup_sherpa2.sh")
         )
         work_dir = os.getcwd()
         # get the prepared Sherpack and runfiles and unpack them

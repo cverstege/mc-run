@@ -74,7 +74,7 @@ class SherpaBuild(GenRivetTask):
 
         # set environment variables
         sherpa_env = set_environment_variables(
-            os.path.expandvars("$ANALYSIS_PATH/setup/setup_sherpa.sh")
+            os.path.expandvars("$ANALYSIS_PATH/setup/setup_sherpa2.sh")
         )
 
         # Initialize Sherpa
