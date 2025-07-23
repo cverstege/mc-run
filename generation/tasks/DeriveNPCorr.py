@@ -144,7 +144,7 @@ class DeriveNPCorr(PostprocessingTask):
         logger.info("Executable: {}".format(" ".join(executable)))
 
         rivet_env = set_environment_variables(
-            os.path.expandvars("$ANALYSIS_PATH/setup/setup_rivet.sh")
+            os.path.expandvars("$ANALYSIS_PATH/setup/setup_rivet3.sh")
         )
         try:
             run_command(

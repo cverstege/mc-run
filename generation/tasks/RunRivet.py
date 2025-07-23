@@ -121,7 +121,7 @@ class RunRivet(GenRivetTask, HTCondorWorkflow, law.LocalWorkflow):
 
         # set environment variables
         tmp_dir = law.LocalDirectoryTarget(is_tmp=True)
-        rivet_env = set_environment_variables("$ANALYSIS_PATH/setup/setup_rivet.sh")
+        rivet_env = set_environment_variables("$ANALYSIS_PATH/setup/setup_rivet3.sh")
 
         # identify and get the compiled Rivet analyses
         logger.info(
