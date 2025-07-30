@@ -2,8 +2,7 @@
 #include "Rivet/Analysis.hh"
 #include "Rivet/Projections/FinalState.hh"
 #include "Rivet/Projections/FastJets.hh"
-#include "Rivet/Projections/DressedLeptons.hh"
-#include "Rivet/Projections/ZFinder.hh"
+#include "Rivet/Projections/DileptonFinder.hh"
 
 namespace Rivet {
 
@@ -40,21 +39,21 @@ namespace Rivet {
 
       const FinalState fs(Cuts::abseta < 4.9);
       // CMS GenJets include muons, cleaning is done later with deltaR with respect to Z-muons
-      declare(FastJets(fs, FastJets::ANTIKT, 0.4, JetAlg::Muons::ALL, JetAlg::Invisibles::NONE), "jetsAK4");
-      declare(FastJets(fs, FastJets::ANTIKT, 0.8, JetAlg::Muons::ALL, JetAlg::Invisibles::NONE), "jetsAK8");
+      declare(FastJets(fs, JetAlg::ANTIKT, 0.4, JetMuons::ALL, JetInvisibles::NONE), "jetsAK4");
+      declare(FastJets(fs, JetAlg::ANTIKT, 0.8, JetMuons::ALL, JetInvisibles::NONE), "jetsAK8");
 
       // Dress Muons with photons and find Z boson
-      const Cut muon_cuts = Cuts::abseta < _maxmuoneta && Cuts::pT > _minmuonptcut;
-      ZFinder zfinder_mm_dressed(
-        fs,                                   // final state for ZFinder
-        muon_cuts,                            // Cuts on dressed muons
-        PID::MUON,                            // Muon PID of ZFinder particles
-        _zmass - _zmassdiff, _zmass + _zmassdiff, // mass window
-        0.1,                                  // deltaR for photon dressing
-        ZFinder::ChargedLeptons::ALL,         // Unfolding to stable particle level
-        ZFinder::ClusterPhotons::ALL,         // Unfolding to stable particle level
-        ZFinder::AddPhotons::YES,             // Add photons to ZFinder particles (TODO: cross check with analysis)
-        _zmass                                // masstarget around PDG Z mass
+      const Cut muon_cuts = Cuts::abspid == PID::MUON
+                            && Cuts::abseta < _maxmuoneta
+                            && Cuts::pT > _minmuonptcut;
+      const Cut z_cuts = Cuts::massIn(_zmass - _zmassdiff, _zmass + _zmassdiff)
+                         && Cuts::pT > _minptZ;
+      DileptonFinder zfinder_mm_dressed(
+        fs,
+        _zmass,
+		    0.1,
+		    muon_cuts,
+		    z_cuts
       );
       declare(zfinder_mm_dressed, "zfinder_mm_dressed");
 
@@ -154,7 +153,7 @@ namespace Rivet {
     void finalize() {
       const double sf = crossSection() / picobarn / sumOfWeights();
       for (const auto& _hist : _h) {
-        scale(_hist.second, sf);
+        _hist.second->scaleW(sf);
       }
     }
 
