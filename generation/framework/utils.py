@@ -81,6 +81,13 @@ def identify_inputfile(filename, config_path, generator):
             )
         else:
             _my_input_file = os.path.join(config_path, "Run.dat")
+    elif generator == "sherpa3":
+        if config_path == "" or config_path == "default":
+            _my_input_file = os.path.join(
+                "$ANALYSIS_PATH", "inputfiles", generator, filename, "Sherpa.yaml"
+            )
+        else:
+            _my_input_file = os.path.join(config_path, "Sherpa.yaml")
     else:
         raise NotImplementedError("Generator {} unknown!".format(generator))
     return _my_input_file
