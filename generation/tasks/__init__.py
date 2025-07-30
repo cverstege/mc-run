@@ -6,9 +6,11 @@ from .HerwigRun import *
 from .PlotNPCorr import *
 from .PlotScenarioComparison import *
 from .PlotSplittedQuantity import *
+from .Rivet4 import *
 from .RivetBuild import *
 from .RivetMerge import *
 from .RunRivet import *
+from .Sherpa3 import *
 from .SherpaBuild import *
 from .SherpaIntegrate import *
 from .SherpaRun import *
