@@ -1,0 +1,38 @@
+# set up beams for LHC run 2
+BEAMS: 2212
+BEAM_ENERGIES: 6500
+
+# matrix-element calculation, OpenLoops for EWVirt
+ME_GENERATORS: [Comix, OpenLoops]
+
+MEPS:
+  CORE_SCALE: VAR{sqr(91.2)}{sqr(91.2)}{sqr(91.2)}
+
+# EW corrections
+KFACTOR: EWVirt
+
+# pp -> Z[mumu]+jet
+PROCESSES:
+- 93 93 -> 13 -13 93:
+    Enhance_Function: VAR{PPerp2(p[2]+p[3])/400}|1.0|100.0
+    Order: {QCD: 1, EW: 2}
+    Loop_Generator: OpenLoops
+
+SELECTORS:
+- [PT, -13, 5.0, E_CMS]
+- [Eta, -13, -2.5, 2.5]
+- [PT, 13, 5.0, E_CMS]
+- [Eta, 13, -2.5, 2.5]
+- [Mass, 13, -13, 60.0, 120.0]
+- NJetFinder:
+    N: 1
+    PTMin: 15
+    ETMin: 0.0
+    R: 0.4
+    Exp: -1
+
+# use HepMC3 root format for output
+EVENT_OUTPUT:
+  - HepMC3[events.root]
+HEPMC3_IO_TYPE: 4
+HEPMC_USE_NAMED_WEIGHTS: true
