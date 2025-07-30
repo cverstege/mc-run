@@ -20,15 +20,17 @@ software/
 *.tex
 
 # Sherpa outputs
-**/sherpa/*/Process/
-**/sherpa/*/Status*/
-**/sherpa/*/Results*
-**/sherpa/*/makelibs
-**/sherpa/*/SConstruct
-**/sherpa/*/*.db*
-**/sherpa/*/*.dat
-!**/sherpa/*/Run.dat
+**/sherpa*/*/Process/
+**/sherpa*/*/Status*/
+**/sherpa*/*/Results*
+**/sherpa*/*/makelibs
+**/sherpa*/*/SConstruct
+**/sherpa*/*/*.db*
+**/sherpa*/*/*.dat
+!**/sherpa*/*/Run.dat
+!**/sherpa*/*/Sherpa.yaml
 **Sherpa_Reference.tex
+**/sherpa*/*/Settings_Report
 
 # Herwig installations
 Herwig-cache/
