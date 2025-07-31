@@ -2,17 +2,24 @@
 BEAMS: 2212
 BEAM_ENERGIES: 6500
 
-# matrix-element calculation, OpenLoops for EWVirt
-ME_GENERATORS: [Comix, OpenLoops]
+ME_GENERATORS: [Amegic, Comix, OpenLoops]
 
 MEPS:
   CORE_SCALE: VAR{sqr(91.2)}{sqr(91.2)}{sqr(91.2)}
+
+# on-the-fly variations (EWSud)
+VARIATIONS:
+  - EWSud
+MODEL: SMGold
+OL_IGNORE_MODEL: true
 
 # pp -> Z[mumu]+jet
 PROCESSES:
 - 93 93 -> 13 -13 93:
     Enhance_Function: VAR{PPerp2(p[2]+p[3])/400}|1.0|100.0
-    Order: {QCD: 1, EW: 2}
+    Order: {QCD: 1, EW: 2, SMGold: 0}
+    ME_Generator: Amegic
+    RS_ME_GENERATOR: Comix
     Loop_Generator: OpenLoops
 
 SELECTORS:
